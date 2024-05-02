@@ -72,13 +72,13 @@ func init() {
 }
 
 // CreateContainer creates a new container with the given configuration but does not start it.
-func CreateContainer(id string, c *ContainerConfig) (Container, error) {
+func CreateContainer(ctx context.Context, id string, c *ContainerConfig) (Container, error) {
 	fullConfig, err := mergemaps.MergeJSON(c, createContainerAdditionalJSON)
 	if err != nil {
 		return nil, fmt.Errorf("failed to merge additional JSON '%s': %w", createContainerAdditionalJSON, err)
 	}
 
-	system, err := hcs.CreateComputeSystem(context.Background(), id, fullConfig)
+	system, err := hcs.CreateComputeSystem(ctx, id, fullConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +86,8 @@ func CreateContainer(id string, c *ContainerConfig) (Container, error) {
 }
 
 // OpenContainer opens an existing container by ID.
-func OpenContainer(id string) (Container, error) {
-	system, err := hcs.OpenComputeSystem(context.Background(), id)
+func OpenContainer(ctx context.Context, id string) (Container, error) {
+	system, err := hcs.OpenComputeSystem(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -95,18 +95,18 @@ func OpenContainer(id string) (Container, error) {
 }
 
 // GetContainers gets a list of the containers on the system that match the query
-func GetContainers(q ComputeSystemQuery) ([]ContainerProperties, error) {
-	return hcs.GetComputeSystems(context.Background(), q)
+func GetContainers(ctx context.Context, q ComputeSystemQuery) ([]ContainerProperties, error) {
+	return hcs.GetComputeSystems(ctx, q)
 }
 
 // Start synchronously starts the container.
-func (container *container) Start() error {
-	return convertSystemError(container.system.Start(context.Background()), container)
+func (container *container) Start(ctx context.Context) error {
+	return convertSystemError(container.system.Start(ctx), container)
 }
 
 // Shutdown requests a container shutdown, but it may not actually be shutdown until Wait() succeeds.
-func (container *container) Shutdown() error {
-	err := container.system.Shutdown(context.Background())
+func (container *container) Shutdown(ctx context.Context) error {
+	err := container.system.Shutdown(ctx)
 	if err != nil {
 		return convertSystemError(err, container)
 	}
@@ -114,8 +114,8 @@ func (container *container) Shutdown() error {
 }
 
 // Terminate requests a container terminate, but it may not actually be terminated until Wait() succeeds.
-func (container *container) Terminate() error {
-	err := container.system.Terminate(context.Background())
+func (container *container) Terminate(ctx context.Context) error {
+	err := container.system.Terminate(ctx)
 	if err != nil {
 		return convertSystemError(err, container)
 	}
@@ -152,13 +152,13 @@ func (container *container) WaitTimeout(timeout time.Duration) error {
 }
 
 // Pause pauses the execution of a container.
-func (container *container) Pause() error {
-	return convertSystemError(container.system.Pause(context.Background()), container)
+func (container *container) Pause(ctx context.Context) error {
+	return convertSystemError(container.system.Pause(ctx), container)
 }
 
 // Resume resumes the execution of a container.
-func (container *container) Resume() error {
-	return convertSystemError(container.system.Resume(context.Background()), container)
+func (container *container) Resume(ctx context.Context) error {
+	return convertSystemError(container.system.Resume(ctx), container)
 }
 
 // HasPendingUpdates returns true if the container has updates pending to install
@@ -167,8 +167,8 @@ func (container *container) HasPendingUpdates() (bool, error) {
 }
 
 // Statistics returns statistics for the container. This is a legacy v1 call
-func (container *container) Statistics() (Statistics, error) {
-	properties, err := container.system.Properties(context.Background(), schema1.PropertyTypeStatistics)
+func (container *container) Statistics(ctx context.Context) (Statistics, error) {
+	properties, err := container.system.Properties(ctx, schema1.PropertyTypeStatistics)
 	if err != nil {
 		return Statistics{}, convertSystemError(err, container)
 	}
@@ -177,8 +177,8 @@ func (container *container) Statistics() (Statistics, error) {
 }
 
 // ProcessList returns an array of ProcessListItems for the container. This is a legacy v1 call
-func (container *container) ProcessList() ([]ProcessListItem, error) {
-	properties, err := container.system.Properties(context.Background(), schema1.PropertyTypeProcessList)
+func (container *container) ProcessList(ctx context.Context) ([]ProcessListItem, error) {
+	properties, err := container.system.Properties(ctx, schema1.PropertyTypeProcessList)
 	if err != nil {
 		return nil, convertSystemError(err, container)
 	}
@@ -187,8 +187,8 @@ func (container *container) ProcessList() ([]ProcessListItem, error) {
 }
 
 // This is a legacy v1 call
-func (container *container) MappedVirtualDisks() (map[int]MappedVirtualDiskController, error) {
-	properties, err := container.system.Properties(context.Background(), schema1.PropertyTypeMappedVirtualDisk)
+func (container *container) MappedVirtualDisks(ctx context.Context) (map[int]MappedVirtualDiskController, error) {
+	properties, err := container.system.Properties(ctx, schema1.PropertyTypeMappedVirtualDisk)
 	if err != nil {
 		return nil, convertSystemError(err, container)
 	}
@@ -197,8 +197,8 @@ func (container *container) MappedVirtualDisks() (map[int]MappedVirtualDiskContr
 }
 
 // CreateProcess launches a new process within the container.
-func (container *container) CreateProcess(c *ProcessConfig) (Process, error) {
-	p, err := container.system.CreateProcess(context.Background(), c)
+func (container *container) CreateProcess(ctx context.Context, c *ProcessConfig) (Process, error) {
+	p, err := container.system.CreateProcess(ctx, c)
 	if err != nil {
 		return nil, convertSystemError(err, container)
 	}
@@ -206,8 +206,8 @@ func (container *container) CreateProcess(c *ProcessConfig) (Process, error) {
 }
 
 // OpenProcess gets an interface to an existing process within the container.
-func (container *container) OpenProcess(pid int) (Process, error) {
-	p, err := container.system.OpenProcess(context.Background(), pid)
+func (container *container) OpenProcess(ctx context.Context, pid int) (Process, error) {
+	p, err := container.system.OpenProcess(ctx, pid)
 	if err != nil {
 		return nil, convertSystemError(err, container)
 	}
@@ -220,6 +220,6 @@ func (container *container) Close() error {
 }
 
 // Modify the System
-func (container *container) Modify(config *ResourceModificationRequestResponse) error {
-	return convertSystemError(container.system.Modify(context.Background(), config), container)
+func (container *container) Modify(ctx context.Context, config *ResourceModificationRequestResponse) error {
+	return convertSystemError(container.system.Modify(ctx, config), container)
 }

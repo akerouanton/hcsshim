@@ -3,6 +3,7 @@
 package hcsshim
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -33,13 +34,13 @@ type ComputeSystemQuery = schema1.ComputeSystemQuery
 // Container represents a created (but not necessarily running) container.
 type Container interface {
 	// Start synchronously starts the container.
-	Start() error
+	Start(context.Context) error
 
 	// Shutdown requests a container shutdown, but it may not actually be shutdown until Wait() succeeds.
-	Shutdown() error
+	Shutdown(context.Context) error
 
 	// Terminate requests a container terminate, but it may not actually be terminated until Wait() succeeds.
-	Terminate() error
+	Terminate(context.Context) error
 
 	// Waits synchronously waits for the container to shutdown or terminate.
 	Wait() error
@@ -49,34 +50,34 @@ type Container interface {
 	WaitTimeout(time.Duration) error
 
 	// Pause pauses the execution of a container.
-	Pause() error
+	Pause(context.Context) error
 
 	// Resume resumes the execution of a container.
-	Resume() error
+	Resume(context.Context) error
 
 	// HasPendingUpdates returns true if the container has updates pending to install.
 	HasPendingUpdates() (bool, error)
 
 	// Statistics returns statistics for a container.
-	Statistics() (Statistics, error)
+	Statistics(context.Context) (Statistics, error)
 
 	// ProcessList returns details for the processes in a container.
-	ProcessList() ([]ProcessListItem, error)
+	ProcessList(context.Context) ([]ProcessListItem, error)
 
 	// MappedVirtualDisks returns virtual disks mapped to a utility VM, indexed by controller
-	MappedVirtualDisks() (map[int]MappedVirtualDiskController, error)
+	MappedVirtualDisks(context.Context) (map[int]MappedVirtualDiskController, error)
 
 	// CreateProcess launches a new process within the container.
-	CreateProcess(c *ProcessConfig) (Process, error)
+	CreateProcess(ctx context.Context, c *ProcessConfig) (Process, error)
 
 	// OpenProcess gets an interface to an existing process within the container.
-	OpenProcess(pid int) (Process, error)
+	OpenProcess(ctx context.Context, pid int) (Process, error)
 
 	// Close cleans up any state associated with the container but does not terminate or wait for it.
 	Close() error
 
 	// Modify the System
-	Modify(config *ResourceModificationRequestResponse) error
+	Modify(ctx context.Context, config *ResourceModificationRequestResponse) error
 }
 
 // Process represents a running or exited process.

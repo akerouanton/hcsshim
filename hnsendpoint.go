@@ -3,6 +3,8 @@
 package hcsshim
 
 import (
+	"context"
+
 	"github.com/Microsoft/hcsshim/internal/hns"
 )
 
@@ -43,7 +45,7 @@ func HNSListEndpointRequest() ([]HNSEndpoint, error) {
 }
 
 // HotAttachEndpoint makes a HCS Call to attach the endpoint to the container
-func HotAttachEndpoint(containerID string, endpointID string) error {
+func HotAttachEndpoint(ctx context.Context, containerID string, endpointID string) error {
 	endpoint, err := GetHNSEndpointByID(endpointID)
 	if err != nil {
 		return err
@@ -52,11 +54,11 @@ func HotAttachEndpoint(containerID string, endpointID string) error {
 	if isAttached {
 		return err
 	}
-	return modifyNetworkEndpoint(containerID, endpointID, Add)
+	return modifyNetworkEndpoint(ctx, containerID, endpointID, Add)
 }
 
 // HotDetachEndpoint makes a HCS Call to detach the endpoint from the container
-func HotDetachEndpoint(containerID string, endpointID string) error {
+func HotDetachEndpoint(ctx context.Context, containerID string, endpointID string) error {
 	endpoint, err := GetHNSEndpointByID(endpointID)
 	if err != nil {
 		return err
@@ -65,12 +67,12 @@ func HotDetachEndpoint(containerID string, endpointID string) error {
 	if !isAttached {
 		return err
 	}
-	return modifyNetworkEndpoint(containerID, endpointID, Remove)
+	return modifyNetworkEndpoint(ctx, containerID, endpointID, Remove)
 }
 
 // ModifyContainer corresponding to the container id, by sending a request
-func modifyContainer(id string, request *ResourceModificationRequestResponse) error {
-	container, err := OpenContainer(id)
+func modifyContainer(ctx context.Context, id string, request *ResourceModificationRequestResponse) error {
+	container, err := OpenContainer(ctx, id)
 	if err != nil {
 		if IsNotExist(err) {
 			return ErrComputeSystemDoesNotExist
@@ -78,7 +80,7 @@ func modifyContainer(id string, request *ResourceModificationRequestResponse) er
 		return getInnerError(err)
 	}
 	defer container.Close()
-	err = container.Modify(request)
+	err = container.Modify(ctx, request)
 	if err != nil {
 		if IsNotSupported(err) {
 			return ErrPlatformNotSupported
@@ -89,13 +91,13 @@ func modifyContainer(id string, request *ResourceModificationRequestResponse) er
 	return nil
 }
 
-func modifyNetworkEndpoint(containerID string, endpointID string, request RequestType) error {
+func modifyNetworkEndpoint(ctx context.Context, containerID string, endpointID string, request RequestType) error {
 	requestMessage := &ResourceModificationRequestResponse{
 		Resource: Network,
 		Request:  request,
 		Data:     endpointID,
 	}
-	err := modifyContainer(containerID, requestMessage)
+	err := modifyContainer(ctx, containerID, requestMessage)
 
 	if err != nil {
 		return err
