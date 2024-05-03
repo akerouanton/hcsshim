@@ -1,4 +1,4 @@
-package oc
+package otelutil
 
 import (
 	"errors"

@@ -12,7 +12,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/Microsoft/go-winio"
 	task "github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/ttrpc"
 	typeurl "github.com/containerd/typeurl/v2"
@@ -23,11 +22,13 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/Microsoft/go-winio"
+
 	runhcsopts "github.com/Microsoft/hcsshim/cmd/containerd-shim-runhcs-v1/options"
 	"github.com/Microsoft/hcsshim/internal/extendedtask"
 	hcslog "github.com/Microsoft/hcsshim/internal/log"
 	"github.com/Microsoft/hcsshim/internal/shimdiag"
-	"github.com/Microsoft/hcsshim/pkg/octtrpc"
+	"github.com/Microsoft/hcsshim/pkg/otelttrpc"
 )
 
 var svc *service
@@ -193,7 +194,7 @@ var serveCommand = cli.Command{
 			return fmt.Errorf("failed to create new service: %w", err)
 		}
 
-		s, err := ttrpc.NewServer(ttrpc.WithUnaryServerInterceptor(octtrpc.ServerInterceptor()))
+		s, err := ttrpc.NewServer(ttrpc.WithUnaryServerInterceptor(otelttrpc.ServerInterceptor()))
 		if err != nil {
 			return err
 		}
