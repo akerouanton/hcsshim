@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 
+	c8dlog "github.com/containerd/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,13 +38,7 @@ var (
 // earlier contexts.
 // Use `UpdateContext` to update the entry and context.
 func GetEntry(ctx context.Context) *logrus.Entry {
-	entry := fromContext(ctx)
-
-	if entry == nil {
-		entry = L.WithContext(ctx)
-	}
-
-	return entry
+	return c8dlog.GetLogger(ctx)
 }
 
 // SetEntry updates the log entry in the context with the provided fields, and
@@ -54,11 +49,7 @@ func GetEntry(ctx context.Context) *logrus.Entry {
 //
 // See WithContext for more information.
 func SetEntry(ctx context.Context, fields logrus.Fields) (context.Context, *logrus.Entry) {
-	e := GetEntry(ctx)
-	if len(fields) > 0 {
-		e = e.WithFields(fields)
-	}
-	return WithContext(ctx, e)
+	return WithContext(ctx, c8dlog.G(ctx).WithFields(fields))
 }
 
 // UpdateContext extracts the log entry from the context, and, if the entry's
@@ -87,12 +78,5 @@ func WithContext(ctx context.Context, entry *logrus.Entry) (context.Context, *lo
 	// regardless of the order, entry.Context != GetEntry(ctx)
 	// here, the returned entry will reference the supplied context
 	entry = entry.WithContext(ctx)
-	ctx = context.WithValue(ctx, _entryContextKey, entry)
-
-	return ctx, entry
-}
-
-func fromContext(ctx context.Context) *logrus.Entry {
-	e, _ := ctx.Value(_entryContextKey).(*logrus.Entry)
-	return e
+	return c8dlog.WithLogger(ctx, entry), entry
 }
